@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Convert a practical SQL subset into Power Query M for Excel Tables, privately in your browser.">
+    <title>SQL → Power Query M</title>
+    <link rel="stylesheet" href="./styles.css">
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="brand" href="./" aria-label="SQL to Power Query M home">
+        <span class="brand-mark">→</span>
+        <span>SQL<span class="brand-accent">→</span>M</span>
+      </a>
+      <div class="topbar-meta">
+        <span class="privacy-chip"><span class="dot"></span> Runs in your browser</span>
+        <a href="#how-it-works">How it works</a>
+      </div>
+    </header>
+
+    <main class="page-shell">
+      <section class="hero" aria-labelledby="page-title">
+        <div class="hero-copy">
+          <p class="eyebrow">Excel query toolkit · v0.1</p>
+          <h1 id="page-title">Write SQL.<br><span>Paste M into Excel.</span></h1>
+          <p class="hero-lede">A small, honest SQL subset compiled into Power Query M. Bring your table headers, keep your workbook private, and leave with a query you can refresh in Excel.</p>
+        </div>
+        <div class="hero-stat" aria-label="Workflow summary">
+          <div class="stat-number">01</div>
+          <div>
+            <strong>Schema first</strong>
+            <span>Excel Table names and headers are the bridge between SQL and M.</span>
+          </div>
+        </div>
+      </section>
+
+      <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+      <section class="workspace-grid" aria-label="SQL to M workspace">
+        <aside class="panel schema-panel">
+          <div class="panel-heading">
+            <div>
+              <p class="section-kicker">01 · Schema</p>
+              <h2>Tell us about Excel</h2>
+            </div>
+            <span id="table-count" class="count-badge">0 tables</span>
+          </div>
+
+          <div class="dropzone" id="dropzone">
+            <input id="workbook-file" type="file" accept=".xlsx,.xlsm,.xlsb,.csv" hidden>
+            <button id="choose-file" class="upload-button" type="button">
+              <span class="upload-icon">↥</span>
+              <span><strong>Upload workbook</strong><small>.xlsx, .xlsm, or .csv · headers only</small></span>
+            </button>
+            <p class="dropzone-note">Your file is read locally. Rows are inspected only long enough to infer column types, then discarded.</p>
+          </div>
+
+          <div id="schema-status" class="inline-note" aria-live="polite"></div>
+          <div id="schema-list" class="schema-list"></div>
+
+          <details class="schema-json-details">
+            <summary>Advanced: edit schema JSON</summary>
+            <p class="help-text">Use this when the worksheet name is different from the real Excel Table name, or when you want to add types and lookup metadata.</p>
+            <textarea id="schema-json" class="code-input compact-code" spellcheck="false" aria-label="Schema JSON"></textarea>
+            <button id="apply-schema" class="secondary-button" type="button">Apply schema JSON</button>
+          </details>
+
+          <button id="load-sample" class="text-button" type="button">Load a sample schema</button>
+        </aside>
+
+        <section class="panel editor-panel">
+          <div class="panel-heading editor-heading">
+            <div>
+              <p class="section-kicker">02 · Query</p>
+              <h2>Compose your SQL</h2>
+            </div>
+            <div class="editor-actions">
+              <select id="example-select" class="small-select" aria-label="Choose an example">
+                <option value="sales-summary">Sales summary</option>
+                <option value="joined-label">Joined customer label</option>
+                <option value="date-bucket">Date bucket</option>
+                <option value="unsupported">Show a helpful rejection</option>
+              </select>
+              <button id="load-example" class="ghost-button" type="button">Load example</button>
+            </div>
+          </div>
+
+          <div class="query-editor-wrap">
+            <div class="editor-gutter"><span>SQL</span><span>01</span></div>
+            <textarea id="sql-input" class="code-input sql-input" spellcheck="false" aria-label="SQL query"></textarea>
+          </div>
+          <div class="editor-footer">
+            <span class="keyboard-hint"><kbd>⌘</kbd><kbd>Enter</kbd> to compile</span>
+            <button id="compile-button" class="primary-button" type="button"><span>Compile to M</span><span class="button-arrow">↗</span></button>
+          </div>
+
+          <details class="builder-details">
+            <summary><span>Need a starting point?</span><span class="summary-hint">Build a simple SELECT</span></summary>
+            <div class="builder-grid">
+              <label class="field-label">From table
+                <select id="builder-table" class="field-control"></select>
+              </label>
+              <div class="builder-columns-field">
+                <span class="field-label">Columns</span>
+                <div id="builder-columns" class="column-checks"></div>
+              </div>
+              <label class="field-label">Optional filter column
+                <select id="builder-filter-column" class="field-control"><option value="">No filter</option></select>
+              </label>
+              <label class="field-label">Operator
+                <select id="builder-filter-op" class="field-control">
+                  <option>=</option><option>&lt;&gt;</option><option>&gt;</option><option>&gt;=</option><option>&lt;</option><option>&lt;=</option>
+                </select>
+              </label>
+              <label class="field-label">Value
+                <input id="builder-filter-value" class="field-control" placeholder="paid or 100">
+              </label>
+              <label class="check-label"><input id="builder-distinct" type="checkbox"> DISTINCT</label>
+              <button id="build-query" class="secondary-button builder-submit" type="button">Put starter in editor</button>
+            </div>
+          </details>
+
+          <div class="supported-strip">
+            <span class="supported-label">Supported</span>
+            <span>SELECT</span><span>JOIN</span><span>WHERE</span><span>GROUP BY</span><span>HAVING</span><span>ORDER BY</span><span>CASE</span><span>UNION</span>
+          </div>
+        </section>
+      </section>
+
+      <section id="result-panel" class="panel result-panel" aria-labelledby="result-title">
+        <div class="panel-heading result-heading">
+          <div>
+            <p class="section-kicker">03 · Output</p>
+            <h2 id="result-title">Your Power Query M</h2>
+          </div>
+          <div id="result-actions" class="result-actions" hidden>
+            <button id="copy-m" class="secondary-button" type="button">Copy M</button>
+            <button id="download-m" class="secondary-button" type="button">Download .pq</button>
+          </div>
+        </div>
+        <div id="result-content" class="result-content">
+          <div class="empty-result">
+            <div class="empty-icon">⌁</div>
+            <div><strong>Ready when you are.</strong><p>Upload a workbook or use the sample schema, then compile the SQL above.</p></div>
+          </div>
+        </div>
+      </section>
+
+      <section id="how-it-works" class="how-section">
+        <div>
+          <p class="section-kicker">The small print that saves time</p>
+          <h2>This is a compiler, not a database.</h2>
+        </div>
+        <div class="how-grid">
+          <article><span>01</span><h3>Schema mapping matters</h3><p>SQL names map to real Excel headers. M reads the display headers and table names exactly as Excel stores them.</p></article>
+          <article><span>02</span><h3>Small subset, clear errors</h3><p>CTEs, window functions, LIKE, LIMIT, and a few other constructs are rejected with a reason and a direction.</p></article>
+          <article><span>03</span><h3>Excel is the runtime</h3><p>The site produces source code. Paste it into Power Query and let Excel refresh the result against your workbook.</p></article>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer"><span>SQL → Power Query M</span><span>Open source · No workbook upload · Built for Excel</span></footer>
+
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js" defer></script>
+    <script src="./assets/app.js" defer></script>
+  </body>
+</html>

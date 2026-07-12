@@ -1,0 +1,16 @@
+{
+  "name": "sql-to-power-m",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Browser-only SQL subset to Power Query M converter for Excel tables.",
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "test": "node --test test/*.test.cjs",
+    "check": "npm test && npm run build"
+  },
+  "devDependencies": {
+    "webpack": "^5.99.9",
+    "webpack-cli": "^6.0.1"
+  }
+}
