@@ -28,7 +28,7 @@ Open <http://localhost:4173>. The `.xlsx` reader is loaded from the SheetJS brow
 
 ## GitHub Pages
 
-The workflow in [`.github/workflows/pages.yml`](.github/workflows/pages.yml) builds and deploys `dist/` on pushes to `main`. Enable GitHub Pages with **GitHub Actions** as the source in repository settings.
+The workflow in [`.github/workflows/pages.yml`](.github/workflows/pages.yml) builds and deploys `dist/` on pushes to `main`. The site is live at **[https://gic.mx/sql-to-power-m/](https://gic.mx/sql-to-power-m/)**.
 
 ## Important boundaries
 
