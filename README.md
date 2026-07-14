@@ -34,6 +34,8 @@ The workflow in [`.github/workflows/pages.yml`](.github/workflows/pages.yml) bui
 
 This is a SQL subset for Power Query, not a general SQL engine. The compiler intentionally rejects constructs such as CTEs, `LIMIT`, `RIGHT JOIN`, `LIKE`, window functions, `IN (SELECT ...)`, self-joins, and unsafe join fan-out aggregates. A successful compile produces M source; it does not refresh Excel or execute M in the browser.
 
+When a query hits the `join fan-out` rejection, the app also tries [`src/compiler/suggest-fanout-rewrite.js`](src/compiler/suggest-fanout-rewrite.js) and, if it can safely reshape the SQL (pre-aggregate each joined branch, then join and wrap in an outer query), shows a "Suggested rewrite" block with a copy button under the rejection. It never compiles anything itself — it hands back SQL text to review and paste back into the editor, then recompile through the same real compiler. It bails with a plain-language reason instead of guessing on anything more complex (an aggregate mixing two branches, a compound/cross-alias join key, `AVG` over a branch, etc.).
+
 An uploaded worksheet is initially treated as an Excel Table whose name matches the worksheet name. For reliable output, replace that value with the actual Excel Table name shown in Excel's **Table Design → Table Name**. The schema panel makes this mapping explicit so a pasted query does not silently reference the wrong object.
 
 ## Design improvements over the original idea

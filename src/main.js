@@ -1,4 +1,4 @@
-import { compileSqlToM } from './compiler/index.js';
+import { compileSqlToM, suggestFanoutRewrite } from './compiler/index.js';
 import { toSqlName, workbookToHeaderContext } from './excel-schema.js';
 
 const SAMPLE_CONTEXT = {
@@ -112,7 +112,15 @@ function renderResult() {
     return;
   }
   const rejections = result.rejections || [];
-  $('#result-content').innerHTML = `<div class="error-banner"><span class="banner-icon">!</span><span><strong>Power Query M was not emitted.</strong> The compiler stopped safely and left your SQL unchanged.</span></div><div class="rejection-list">${rejections.map(rejection => `<article class="rejection"><div class="rejection-title"><span>${escapeHtml(rejection.construct || 'Compiler rejection')}</span><span class="position-label">source position ${Number.isFinite(rejection.position) ? rejection.position : 0}</span></div><p class="rejection-message">${escapeHtml(rejection.message || 'The SQL could not be compiled.')}</p>${rejection.hint ? `<p class="rejection-hint">Hint: ${escapeHtml(rejection.hint)}</p>` : ''}</article>`).join('')}</div>`;
+  const suggestion = result.suggestion;
+  const suggestionHtml = suggestion ? (suggestion.ok
+    ? `<div class="suggestion-block">
+        <div class="suggestion-header"><strong>Suggested rewrite</strong><button class="secondary-button" type="button" data-copy-suggestion>Copy</button></div>
+        <p class="rejection-hint">Auto-generated reshape (pre-aggregate each joined branch, then join and wrap in an outer query) — see docs/excel-report-sql-patterns.md in the parent SQLForge project. Review it, then paste it into the editor above and recompile to confirm.</p>
+        <pre class="m-output suggestion-output">${escapeHtml(suggestion.sql)}</pre>
+      </div>`
+    : `<p class="rejection-hint">Auto-suggestion: ${escapeHtml(suggestion.reason)}</p>`) : '';
+  $('#result-content').innerHTML = `<div class="error-banner"><span class="banner-icon">!</span><span><strong>Power Query M was not emitted.</strong> The compiler stopped safely and left your SQL unchanged.</span></div><div class="rejection-list">${rejections.map(rejection => `<article class="rejection"><div class="rejection-title"><span>${escapeHtml(rejection.construct || 'Compiler rejection')}</span><span class="position-label">source position ${Number.isFinite(rejection.position) ? rejection.position : 0}</span></div><p class="rejection-message">${escapeHtml(rejection.message || 'The SQL could not be compiled.')}</p>${rejection.hint ? `<p class="rejection-hint">Hint: ${escapeHtml(rejection.hint)}</p>` : ''}${rejection.construct === 'join fan-out' ? suggestionHtml : ''}</article>`).join('')}</div>`;
 }
 
 function compile() {
@@ -121,6 +129,9 @@ function compile() {
   if (!sql) { showToast('Write a SQL query first.'); $('#sql-input').focus(); return; }
   try {
     const result = compileSqlToM({ sql, report: reportForSql(sql), headerContext: state.headerContext });
+    if (!result.ok && result.rejections.some(rejection => rejection.construct === 'join fan-out')) {
+      result.suggestion = suggestFanoutRewrite(sql);
+    }
     state.result = result;
     renderResult();
     $('#result-panel').scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -269,6 +280,13 @@ function wireEvents() {
   $('#schema-list').addEventListener('click', event => { const button = event.target.closest('[data-use-table]'); if (button) insertAtCursor(`\nFROM ${quoteIdentifier(decoded(button.dataset.useTable))}`); });
   $('#schema-list').addEventListener('change', event => { if (event.target.matches('[data-table-field]')) updateTableField(event.target); });
   $('#sql-input').addEventListener('keydown', event => { if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') { event.preventDefault(); compile(); } });
+  $('#result-content').addEventListener('click', async event => {
+    if (!event.target.closest('[data-copy-suggestion]')) return;
+    const sql = state.result?.suggestion?.sql;
+    if (!sql) return;
+    try { await navigator.clipboard.writeText(sql); showToast('Suggested rewrite copied to the clipboard.'); }
+    catch { showToast('Clipboard access failed. Select the suggested SQL and copy it manually.'); }
+  });
   const dropzone = $('#dropzone');
   for (const type of ['dragenter', 'dragover']) dropzone.addEventListener(type, event => { event.preventDefault(); dropzone.classList.add('is-dragging'); });
   for (const type of ['dragleave', 'drop']) dropzone.addEventListener(type, event => { event.preventDefault(); dropzone.classList.remove('is-dragging'); });

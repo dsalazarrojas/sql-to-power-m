@@ -138,6 +138,9 @@ kbd { padding: 3px 5px; border: 1px solid var(--line); border-radius: 4px; backg
 .rejection-hint { margin: 7px 0 0; color: var(--muted); font-size: 11px; line-height: 1.45; }
 .position-label { color: var(--faint); font-family: monospace; font-size: 9px; font-weight: 400; white-space: nowrap; }
 .m-output { min-height: 220px; max-height: 570px; overflow: auto; margin: 0; padding: 18px; border: 1px solid var(--line); border-radius: 12px; background: #0d0f0e; color: #dde9bd; font-family: "SFMono-Regular", Consolas, monospace; font-size: 12px; line-height: 1.6; white-space: pre; }
+.suggestion-block { margin-top: 12px; padding-top: 12px; border-top: 1px dashed #4a3532; }
+.suggestion-header { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 6px; font-size: 12px; }
+.suggestion-output { min-height: auto; max-height: 320px; padding: 13px; font-size: 11px; }
 .how-section { display: grid; grid-template-columns: .85fr 1.6fr; gap: 60px; padding: 105px 0 100px; }
 .how-section h2 { max-width: 280px; font-size: 30px; line-height: 1.05; }
 .how-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
