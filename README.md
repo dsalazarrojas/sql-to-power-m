@@ -16,6 +16,10 @@ The compiler snapshot lives in [`src/compiler/`](src/compiler/). It is copied fr
 
 `SELECT *` is accepted when it is a direct query against a detected table, because the app can pass the exact detected column set to the compiler. For joins or more complex shapes, prefer an explicit projection so the resulting M columns stay predictable.
 
+## Claude Code Skill
+
+[`skills/sql-to-power-m/`](skills/sql-to-power-m/) packages the same compiler as a Claude Code Skill: an agent can compile SQL to Power Query M, or get a join-fan-out simplification suggestion, from `node skills/sql-to-power-m/scripts/compile.cjs` — no browser, no upload. See `skills/sql-to-power-m/SKILL.md` for the full contract. The website links to it under "For Claude Code users".
+
 ## Run locally
 
 ```bash

@@ -92,7 +92,10 @@
           </div>
           <div class="editor-footer">
             <span class="keyboard-hint"><kbd>⌘</kbd><kbd>Enter</kbd> to compile</span>
-            <button id="compile-button" class="primary-button" type="button"><span>Compile to M</span><span class="button-arrow">↗</span></button>
+            <div class="editor-footer-actions">
+              <button id="simplify-button" class="secondary-button" type="button" title="Check for join fan-out (aggregating 2+ joined child tables) and suggest a safe rewrite">Simplify SQL</button>
+              <button id="compile-button" class="primary-button" type="button"><span>Compile to M</span><span class="button-arrow">↗</span></button>
+            </div>
           </div>
 
           <details class="builder-details">
@@ -156,6 +159,20 @@
           <article><span>01</span><h3>Schema mapping matters</h3><p>SQL names map to real Excel headers. M reads the display headers and table names exactly as Excel stores them.</p></article>
           <article><span>02</span><h3>Small subset, clear errors</h3><p>CTEs, window functions, LIKE, LIMIT, and a few other constructs are rejected with a reason and a direction.</p></article>
           <article><span>03</span><h3>Excel is the runtime</h3><p>The site produces source code. Paste it into Power Query and let Excel refresh the result against your workbook.</p></article>
+        </div>
+      </section>
+
+      <section id="claude-skill" class="how-section skill-section">
+        <div>
+          <p class="section-kicker">For Claude Code users</p>
+          <h2>Same compiler, as an agent skill.</h2>
+          <p class="skill-lede">Drop <code>skills/sql-to-power-m/</code> into your own project and an agent can compile SQL to Power Query M, or get a join-fan-out simplification suggestion, straight from the CLI — no browser, no upload.</p>
+          <a class="secondary-button" href="https://github.com/dsalazarrojas/sql-to-power-m/tree/main/skills/sql-to-power-m" target="_blank" rel="noopener">View the skill on GitHub ↗</a>
+        </div>
+        <div class="how-grid">
+          <article><span>01</span><h3>Compile</h3><p><code>node scripts/compile.cjs --sql "..." --schema '...'</code> prints JSON with the M code, or a structured rejection.</p></article>
+          <article><span>02</span><h3>Simplify</h3><p><code>--simplify-only</code> reshapes a join-fan-out query straight from the SQL text — no schema needed.</p></article>
+          <article><span>03</span><h3>Never guesses</h3><p>Bails with a plain-language reason instead of emitting SQL it isn't confident is correct.</p></article>
         </div>
       </section>
     </main>

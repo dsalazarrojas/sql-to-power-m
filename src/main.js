@@ -101,10 +101,31 @@ function renderBuilder() {
   $('#builder-filter-column').innerHTML = `<option value="">No filter</option>${columns.map((column, index) => `<option value="${index}">${escapeHtml(column.name || column.header)}</option>`).join('')}`;
 }
 
+const NOT_APPLICABLE_REASON = /not the join fan-out shape|was not rejected for join fan-out/;
+
+function suggestionBlockHtml(suggestion, { successLabel } = {}) {
+  if (suggestion.ok) {
+    return `<div class="suggestion-block">
+        <div class="suggestion-header"><strong>${escapeHtml(successLabel || 'Suggested rewrite')}</strong><button class="secondary-button" type="button" data-copy-suggestion>Copy</button></div>
+        <p class="rejection-hint">Auto-generated reshape (pre-aggregate each joined branch, then join and wrap in an outer query). Review it, then paste it into the editor above and recompile to confirm.</p>
+        <pre class="m-output suggestion-output">${escapeHtml(suggestion.sql)}</pre>
+      </div>`;
+  }
+  if (NOT_APPLICABLE_REASON.test(suggestion.reason)) {
+    return `<div class="info-banner"><span class="banner-icon">i</span><span><strong>No join fan-out risk detected.</strong> This query doesn't aggregate columns from two or more joined child tables, so there's nothing to simplify.</span></div>`;
+  }
+  return `<div class="info-banner warning"><span class="banner-icon">!</span><span><strong>Can't safely simplify this automatically.</strong> ${escapeHtml(suggestion.reason)}</span></div>`;
+}
+
+function renderSimplifyResult(suggestion) {
+  $('#result-content').innerHTML = suggestionBlockHtml(suggestion, { successLabel: 'Simplified query' });
+}
+
 function renderResult() {
   const result = state.result;
   const actions = $('#result-actions');
   if (!result) { actions.hidden = true; $('#result-content').innerHTML = '<div class="empty-result"><div class="empty-icon">⌁</div><div><strong>Ready when you are.</strong><p>Upload a workbook or use the sample schema, then compile the SQL above.</p></div></div>'; return; }
+  if (result.simplifyOnly) { actions.hidden = true; renderSimplifyResult(result.suggestion); return; }
   actions.hidden = !result.ok;
   if (result.ok) {
     $('#result-content').innerHTML = `<div class="success-banner"><span class="banner-icon">✓</span><span><strong>Compiled successfully.</strong> This query reads the mapped Excel Tables in Power Query. Review the table names above before pasting.</span></div><pre class="m-output" id="m-output"></pre>`;
@@ -113,13 +134,7 @@ function renderResult() {
   }
   const rejections = result.rejections || [];
   const suggestion = result.suggestion;
-  const suggestionHtml = suggestion ? (suggestion.ok
-    ? `<div class="suggestion-block">
-        <div class="suggestion-header"><strong>Suggested rewrite</strong><button class="secondary-button" type="button" data-copy-suggestion>Copy</button></div>
-        <p class="rejection-hint">Auto-generated reshape (pre-aggregate each joined branch, then join and wrap in an outer query) — see docs/excel-report-sql-patterns.md in the parent SQLForge project. Review it, then paste it into the editor above and recompile to confirm.</p>
-        <pre class="m-output suggestion-output">${escapeHtml(suggestion.sql)}</pre>
-      </div>`
-    : `<p class="rejection-hint">Auto-suggestion: ${escapeHtml(suggestion.reason)}</p>`) : '';
+  const suggestionHtml = suggestion ? suggestionBlockHtml(suggestion) : '';
   $('#result-content').innerHTML = `<div class="error-banner"><span class="banner-icon">!</span><span><strong>Power Query M was not emitted.</strong> The compiler stopped safely and left your SQL unchanged.</span></div><div class="rejection-list">${rejections.map(rejection => `<article class="rejection"><div class="rejection-title"><span>${escapeHtml(rejection.construct || 'Compiler rejection')}</span><span class="position-label">source position ${Number.isFinite(rejection.position) ? rejection.position : 0}</span></div><p class="rejection-message">${escapeHtml(rejection.message || 'The SQL could not be compiled.')}</p>${rejection.hint ? `<p class="rejection-hint">Hint: ${escapeHtml(rejection.hint)}</p>` : ''}${rejection.construct === 'join fan-out' ? suggestionHtml : ''}</article>`).join('')}</div>`;
 }
 
@@ -139,6 +154,19 @@ function compile() {
     state.result = { ok: false, rejections: [{ construct: 'Unexpected compiler error', position: 0, message: error.message, hint: 'This looks like a compiler issue. Keep the SQL and schema JSON if you report it.' }] };
     renderResult();
   }
+}
+
+function simplify() {
+  const sql = $('#sql-input').value.trim();
+  state.sql = $('#sql-input').value;
+  if (!sql) { showToast('Write a SQL query first.'); $('#sql-input').focus(); return; }
+  try {
+    state.result = { simplifyOnly: true, suggestion: suggestFanoutRewrite(sql) };
+  } catch (error) {
+    state.result = { simplifyOnly: true, suggestion: { ok: false, reason: `Unexpected error: ${error.message}` } };
+  }
+  renderResult();
+  $('#result-panel').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 function loadExample() {
@@ -272,6 +300,7 @@ function wireEvents() {
   $('#load-sample').addEventListener('click', loadSample);
   $('#apply-schema').addEventListener('click', applySchemaJson);
   $('#compile-button').addEventListener('click', compile);
+  $('#simplify-button').addEventListener('click', simplify);
   $('#load-example').addEventListener('click', loadExample);
   $('#build-query').addEventListener('click', buildQuery);
   $('#copy-m').addEventListener('click', copyM);
